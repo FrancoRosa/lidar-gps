@@ -1,0 +1,4 @@
+ignoredBuiltDependencies:
+  - '@vaadin/vaadin-usage-statistics'
+  - esbuild
+  - msw
