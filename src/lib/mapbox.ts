@@ -1,5 +1,5 @@
 export const mapbox = {
-  token: import.meta.env.MAPBOX_KEY,
+  token: import.meta.env.VITE_MAPBOX_KEY,
   styles: {
     standard: "mapbox://styles/mapbox/standard",
     light: "mapbox://styles/mapbox/light-v11",

@@ -8,8 +8,14 @@ import {
 import { PLYLoader } from "@loaders.gl/ply"
 import Map, { NavigationControl } from "react-map-gl/mapbox"
 import { mapbox } from "@/lib/mapbox"
+import { useEffect, useState } from "react"
+import { decodeFrame, pointsToDeckFormat } from "@/lib/lidar"
+import { Button } from "./ui/button"
 
 export function MapComponent() {
+  const [points, setPoints] = useState<any[]>([])
+  const [isAcquiring, setIsAcquiring] = useState(false)
+
   const layers = [
     new TextLayer({
       id: "text-test",
@@ -17,7 +23,6 @@ export function MapComponent() {
 
       getPosition: (d) => [d[0] + 0.000005, d[1] + 0.000005],
       getText: () => "Hello",
-      // getText: (d) => "TEST",
       getAlignmentBaseline: "center",
       getColor: [255, 128, 0],
       getSize: 32,
@@ -33,7 +38,39 @@ export function MapComponent() {
       pointSize: 4,
       loaders: [PLYLoader],
     }),
+    new PointCloudLayer({
+      id: "lidar",
+      data: points,
+      coordinateSystem: COORDINATE_SYSTEM.METER_OFFSETS,
+      pointSize: 2,
+
+      getPosition: (d) => d.position,
+      getColor: (d) => d.color,
+
+      pickable: false,
+    }),
   ]
+
+  useEffect(() => {
+    if (!isAcquiring) return
+
+    const ws = new WebSocket("ws://localhost:8000/lidar")
+    ws.binaryType = "arraybuffer"
+
+    ws.onmessage = (event) => {
+      try {
+        const { pts } = decodeFrame(event.data)
+        const data = pointsToDeckFormat(pts)
+        console.log("new points!", data.length)
+        console.log(data[0])
+        setPoints(data) // replace frame (not accumulate)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    return () => ws.close()
+  }, [isAcquiring])
 
   return (
     <DeckGL
@@ -62,6 +99,14 @@ export function MapComponent() {
           visualizePitch={true}
         />
       </Map>
+      <div className="absolute top-4 left-4 z-10">
+        <Button
+          onClick={() => setIsAcquiring(!isAcquiring)}
+          variant={isAcquiring ? "destructive" : "default"}
+        >
+          {isAcquiring ? "Stop Acquisition" : "Start Acquisition"}
+        </Button>
+      </div>
     </DeckGL>
   )
 }
