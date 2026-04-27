@@ -41,8 +41,8 @@ export function MapComponent() {
     new PointCloudLayer({
       id: "lidar",
       data: points,
-      coordinateSystem: COORDINATE_SYSTEM.METER_OFFSETS,
-      pointSize: 2,
+      coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
+      pointSize: 1,
 
       getPosition: (d) => d.position,
       getColor: (d) => d.color,
@@ -78,7 +78,7 @@ export function MapComponent() {
         new FirstPersonView({
           focalDistance: 100,
           fovy: 80,
-          // near: 0.1,
+          near: 0.1,
           // far: 1000,
         }),
       ]}
