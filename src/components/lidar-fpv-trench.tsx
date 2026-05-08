@@ -3,6 +3,7 @@ import {
   FirstPersonView,
   FirstPersonController,
   PointCloudLayer,
+  SolidPolygonLayer
 } from "deck.gl"
 import Map, { NavigationControl } from "react-map-gl/mapbox"
 import { mapbox } from "@/lib/mapbox"
@@ -39,7 +40,51 @@ const INITIAL_HEIGHT = 0.2
 // We normalize before feeding to the color ramp.
 const INTENSITY_MAX = 255
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Trench geometry ───────────────────────────────────────────────────────────
+
+const TRENCH_DEPTH = 0  // how far below Z=0 the bottom sits (metres, keep negative) - not working
+const TRENCH_LIP   =  -0.12  // how much the slab rim sticks above ground (metres) depth perception
+const TRENCH_W     =  0.15   // channel width — applies to both arms (metres)
+
+// Horizontal arm: 1.5m long, running left-to-right at Y = +0.5
+const HORIZONTAL_ARM_CENTER: [number, number] = [0.45, 0.9]
+const HORIZONTAL_ARM_LENGTH = 0.3
+
+// Vertical arm: 1.0m long, running front-to-back at X = +0.75
+const VERTICAL_ARM_CENTER: [number, number] = [0.523, 0.425]
+const VERTICAL_ARM_LENGTH = 0.8
+
+function createWall(
+  center: [number, number],
+  width: number,
+  depth: number
+): [number, number][] {
+  const [x, y] = center
+  const hw = width / 2
+  const hd = depth / 2
+  return [
+    [x - hw, y - hd],
+    [x + hw, y - hd],
+    [x + hw, y + hd],
+    [x - hw, y + hd],
+  ]
+}
+
+// Each segment carries its own floor/ceiling so the layer can read them
+const ROOM_WALLS = [
+  // horizontal arm of the L
+  {
+    polygon: createWall(HORIZONTAL_ARM_CENTER, HORIZONTAL_ARM_LENGTH, TRENCH_W),
+    floorElevation: TRENCH_DEPTH,  // bottom: below ground
+    elevation: TRENCH_LIP,         // top: small lip above ground
+  },
+  // vertical arm of the L
+  {
+    polygon: createWall(VERTICAL_ARM_CENTER, TRENCH_W, VERTICAL_ARM_LENGTH),
+    floorElevation: TRENCH_DEPTH,
+    elevation: TRENCH_LIP,
+  },
+]
 
 type ColorMode = "height" | "intensity" | "distance"
 
@@ -208,6 +253,7 @@ export function LidarFpv() {
   const [isAcquiring, setIsAcquiring] = useState(false)
   const [colorMode, setColorMode] = useState<ColorMode>("height")
   const [accumulate, setAccumulate] = useState(false)
+  const [showWalls, setShowWalls] = useState(true)
   const [status, setStatus] = useState<ViewStatus>("idle")
   const [stats, setStats] = useState<{ fps: number; count: number }>({
     fps: 0,
@@ -341,28 +387,47 @@ export function LidarFpv() {
   }, [version, colorMode, accumulate])
 
   // ── Layers ─────────────────────────────────────────────────────────────
-  const layers = layerData
-    ? [
-        new PointCloudLayer({
-          id: "lidar",
-          coordinateSystem: "cartesian",
-          data: {
-            length: layerData.count,
-            attributes: {
-              getPosition: { value: layerData.positions, size: 3 },
-              getColor: { value: layerData.colors, size: 4 },
+  const wallLayer = new SolidPolygonLayer({
+    id: "walls",
+    coordinateSystem: "cartesian",
+    data: ROOM_WALLS,
+    extruded: true,
+    wireframe: true,
+    getPolygon: (d: (typeof ROOM_WALLS)[number]) => d.polygon,
+    getElevation: (d: (typeof ROOM_WALLS)[number]) => d.elevation,
+    getFloorElevation: (d: (typeof ROOM_WALLS)[number]) => d.floorElevation,
+    getFillColor: [139, 90, 43, 140],   // translucent blue — reads as "cut into ground"
+    getLineColor: [72, 40, 10, 230],   // bright cyan wireframe edges
+    lineWidthMinPixels: 8,
+    _full3d: true,
+  })
+
+  const layers = [
+    ...(layerData
+      ? [
+          new PointCloudLayer({
+            id: "lidar",
+            coordinateSystem: "cartesian",
+            data: {
+              length: layerData.count,
+              attributes: {
+                getPosition: { value: layerData.positions, size: 3 },
+                getColor: { value: layerData.colors, size: 4 },
+              },
             },
-          },
-          pointSize: 0.02,
-          pickable: false,
-          opacity: 1,
-          updateTriggers: {
-            getPosition: version,
-            getColor: version,
-          },
-        }),
-      ]
-    : []
+            pointSize: 0.02,
+            pickable: false,
+            opacity: 1,
+            updateTriggers: {
+              getPosition: version,
+              getColor: version,
+            },
+          }),
+        ]
+      : []),
+    // Walls rendered on top so their wireframe is always visible through points
+    ...(showWalls ? [wallLayer] : []),
+  ]
 
   const onViewStateChange = useCallback(({ viewState: next }: any) => {
     setViewState(next)
@@ -437,6 +502,15 @@ export function LidarFpv() {
 
         <Button onClick={resetCamera} variant="outline" size="sm">
           Reset Camera
+        </Button>
+
+        <Button
+          onClick={() => setShowWalls((v) => !v)}
+          variant={showWalls ? "secondary" : "outline"}
+          size="sm"
+          title="Toggle ghost wall outlines for the room boundary"
+        >
+          {showWalls ? "Trench: ON" : "Trench: OFF"}
         </Button>
       </div>
 
