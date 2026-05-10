@@ -11,4 +11,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: true, // bind to all interfaces so Tailscale IP is reachable
+    proxy: {
+      // Browser connects to ws://<host>:5173/ws — Vite proxies server-side to
+      // localhost:8000, which is always the machine running Vite (laptop with
+      // VS Code port-forward, or the tablet directly).
+      '/ws': {
+        target: 'ws://localhost:8000',
+        ws: true,
+        rewrite: () => '/lidar',
+      },
+    },
+  },
 })
