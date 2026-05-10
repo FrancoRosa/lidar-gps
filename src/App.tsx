@@ -1,6 +1,6 @@
 import { ThemeProvider } from "./components/theme-provider"
 // import { LidarFpv } from "./components/lidar-fpv"
-import { LidarFpv } from "./components/lidar-fpv-trench"
+import { LidarFpv } from "./components/lidar-fpv-trench-3d-excavator"
 import { ScreenToggle } from "./components/screen-toggle"
 import "mapbox-gl/dist/mapbox-gl.css"
 
