@@ -16,6 +16,7 @@ import {
   loadExcavatorAngles,
   type ExcavatorAngles,
 } from "@/types/excavator"
+import { useSensorAngles } from "@/hooks/useSensorAngles"
 import { liveViewState } from "@/lib/excavatorSync"
 import { useTheme } from "@/components/theme-provider"
 
@@ -272,6 +273,9 @@ export function LidarFpv() {
 
   const [excavatorAngles, setExcavatorAngles] =
     useState<ExcavatorAngles>(loadExcavatorAngles)
+  const [sensorEnabled, setSensorEnabled] = useState(false)
+  const sensorAngles = useSensorAngles(sensorEnabled)
+  const activeAngles = sensorEnabled && sensorAngles ? sensorAngles : excavatorAngles
 
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
@@ -634,10 +638,15 @@ export function LidarFpv() {
       {showExcavator && (
         <>
           {/* Excavator 3D overlay — transparent R3F canvas synced to DeckGL camera */}
-          <ExcavatorOverlay angles={excavatorAngles} />
+          <ExcavatorOverlay angles={activeAngles} />
 
           {/* Excavator joint controls panel */}
-          <ExcavatorControls angles={excavatorAngles} onChange={setExcavatorAngles} />
+          <ExcavatorControls
+            angles={activeAngles}
+            onChange={setExcavatorAngles}
+            sensorEnabled={sensorEnabled}
+            onSensorToggle={() => setSensorEnabled((v) => !v)}
+          />
         </>
       )}
     </DeckGL>
