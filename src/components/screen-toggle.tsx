@@ -15,7 +15,6 @@ export function ScreenToggle() {
       variant="outline"
       size="icon"
       onClick={handleFullScreen}
-      className="dark:text-primary"
     >
       <Fullscreen />
     </Button>

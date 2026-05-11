@@ -17,6 +17,7 @@ import {
   type ExcavatorAngles,
 } from "@/types/excavator"
 import { liveViewState } from "@/lib/excavatorSync"
+import { useTheme } from "@/components/theme-provider"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -271,6 +272,9 @@ export function LidarFpv() {
 
   const [excavatorAngles, setExcavatorAngles] =
     useState<ExcavatorAngles>(loadExcavatorAngles)
+
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === "dark"
 
   useEffect(() => {
     localStorage.setItem(LS_KEYS.boom, String(excavatorAngles.boom))
@@ -586,6 +590,33 @@ export function LidarFpv() {
                 }`}
               >
                 {showExcavator ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            {/* Dark Mode */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-zinc-400">Dark Mode</span>
+              <button
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                className={`min-w-[3rem] rounded px-2 py-0.5 text-right font-mono text-xs transition-colors ${
+                  isDark ? "text-cyan-400 bg-cyan-400/10" : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                {isDark ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            {/* Fullscreen */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-zinc-400">Fullscreen</span>
+              <button
+                onClick={() => {
+                  if (document.fullscreenElement) document.exitFullscreen()
+                  else document.documentElement.requestFullscreen()
+                }}
+                className="rounded bg-white/10 px-2 py-0.5 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                Toggle
               </button>
             </div>
           </div>
