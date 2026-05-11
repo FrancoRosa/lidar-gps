@@ -29,6 +29,24 @@ export const LS_KEYS = {
   base: 'excavator_base',
 } as const
 
+export const SENSOR_URL = "https://overdue-figment-disrupt.ngrok-free.dev"
+export const SENSOR_EVENT = "sensors"
+
+export interface SensorAxisMapping {
+  device: string
+  axis: 'x' | 'y' | 'z'
+  negate: boolean
+}
+
+// ---------Sensor configuration------------
+// device: IMU device sends the angle; axis: axis to read; negate: flip sign
+export const SENSOR_MAPPING: Record<keyof ExcavatorAngles, SensorAxisMapping> = {
+  boom:   { device: 'dev1', axis: 'y', negate: true  },
+  stick:  { device: 'dev2', axis: 'y', negate: true },
+  bucket: { device: 'dev4', axis: 'x', negate: false },
+  base:   { device: 'dev3', axis: 'z', negate: false },
+}
+
 export function loadExcavatorAngles(): ExcavatorAngles {
   const parse = (key: string) => {
     const v = parseFloat(localStorage.getItem(key) ?? '')
